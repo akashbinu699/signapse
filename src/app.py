@@ -15,7 +15,7 @@ def generate_image(prompt: str, output_path: str = "output.png"):
     torch.cuda.synchronize()
 
     print("Generating image...")
-    result = pipe(prompt, num_inference_steps=8)  # too many steps for turbo
+    result = pipe(prompt, num_inference_steps=8)
 
     image = result.images[0].convert("RGB")
 
