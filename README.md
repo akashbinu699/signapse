@@ -10,6 +10,8 @@ This exercise evaluates:
 - Infrastructure & cloud skills
 - Ability to improve existing (poor) code
 
+Signapse belives strongly in using the best tools for the job. In the spirit of that belief, we are happy for you to use AI where appropriate. 
+
 ## Tasks
 
 ### 1. Run the Model Locally
@@ -21,7 +23,6 @@ Example:
 ``
 python src/app.py --prompt "a futuristic city floating in the clouds"
 ``
-
 
 ### 2. Optimise the Model Code
 The provided code is intentionally slow and inefficient.
@@ -55,10 +56,9 @@ Please document the optimisations you apply.
 
 ### 4. Deploy on AWS SageMaker
 You must:
-- Build & push your Docker image to Amazon ECR
-- Deploy it on AWS SageMaker Inference
-- Expose a working /predict API endpoint
-- Return a valid base64-encoded output image
+- Create a CI pipeline that will build & push your Docker image to Amazon ECR
+- Create a Terraform script that will deploy the image to AWS SageMaker Inference and expose a /predict endpoint
+- Write tests using Terratest or similar to ensure the deployment works as expected
 
 You may use:
 - AWS CLI
@@ -88,8 +88,7 @@ You must provide:
   - The optimisations you implemented
   - How to call the endpoint
 
-#### 2. A working SageMaker endpoint OR clear, reproducible instructions for creating one.
-
+#### 2. Clear documentation explaining how to deploy your infrastructure and a working test case.
 
 ## What We Evaluate
 #### ML Systems Engineering
