@@ -10,7 +10,7 @@ This exercise evaluates:
 - Infrastructure & cloud skills
 - Ability to improve existing (poor) code
 
-Signapse belives strongly in using the best tools for the job. In the spirit of that belief, we are happy for you to use AI where appropriate. 
+Signapse believes strongly in using the best tools for the job. In the spirit of that belief, we are happy for you to use AI where appropriate. 
 
 ## Tasks
 
