@@ -23,6 +23,11 @@ variable "image_tag" {
   default = "latest"
 }
 
+variable "image_uri" {
+  type        = string
+  description = "Full container image URI pushed to Artifact Registry"
+}
+
 variable "model_display_name" {
   type    = string
   default = "sdxl-turbo-model"
