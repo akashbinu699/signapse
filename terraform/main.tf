@@ -79,25 +79,28 @@ resource "null_resource" "register_model" {
 # Deploy Model to Endpoint
 resource "null_resource" "deploy_model" {
   depends_on = [
+    google_artifact_registry_repository.repo,
     null_resource.register_model,
-    google_vertex_ai_endpoint.endpoint
+    null_resource.create_endpoint
   ]
 
   provisioner "local-exec" {
     command = <<-EOT
-      ENDPOINT_ID=$(gcloud ai endpoints deploy-model \
-        ${google_vertex_ai_endpoint.endpoint.name} \
+      MODEL_ID=$(cat model_id.txt)
+      ENDPOINT_ID=$(cat endpoint_id.txt)
+
+      gcloud ai endpoints deploy-model \
+        "$ENDPOINT_ID" \
         --region=${var.region} \
-        --model=$(cat model_id.txt) \
+        --model="$MODEL_ID" \
         --display-name="sdxl-model-deployment" \
         --machine-type="${var.machine_type}" \
         --accelerator="type=${var.accelerator_type},count=${var.accelerator_count}" \
         --min-replica-count=${var.min_replica_count} \
         --max-replica-count=${var.max_replica_count} \
-        --traffic-split=0=100 \
-        --format="value(name)")
+        --traffic-split=0=100
 
-      echo "$ENDPOINT_ID" > endpoint_id.txt
+      echo "Deployment complete."
     EOT
   }
 }
