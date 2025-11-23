@@ -1,11 +1,15 @@
-output "model_name" {
-  value = google_vertex_ai_model.sdxl_model.name
+
+output "endpoint_id" {
+  description = "The deployed Vertex AI endpoint resource name"
+  value       = google_vertex_ai_endpoint.endpoint.name
 }
 
-output "endpoint_name" {
-  value = google_vertex_ai_endpoint.endpoint.name
+output "endpoint_display_name" {
+  description = "Friendly endpoint name"
+  value       = google_vertex_ai_endpoint.endpoint.display_name
 }
 
-output "deployment_id" {
-  value = google_vertex_ai_endpoint_deployed_model.deployment.id
+output "region" {
+  description = "Region where Vertex resources are deployed"
+  value       = var.region
 }
