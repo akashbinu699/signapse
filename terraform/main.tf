@@ -14,28 +14,32 @@ provider "google" {
   region  = var.region
 }
 
+# Artifact Registry (safe if exists)
 resource "google_artifact_registry_repository" "repo" {
   project       = var.project_id
   location      = var.region
   repository_id = var.artifact_repo
   format        = "DOCKER"
-  description   = "Stable Diffusion container repo"
 
   lifecycle {
-    ignore_changes = [
-      description,
-      format
-    ]
+    create_before_destroy = true
+    ignore_changes        = [format]
   }
 }
 
-resource "google_vertex_ai_endpoint" "endpoint" {
-  name         = "vertex-${var.endpoint_display_name}-${var.project_id}"
-  display_name = var.endpoint_display_name
-  location     = var.region
+# Create Vertex AI Endpoint
+resource "null_resource" "create_endpoint" {
+  provisioner "local-exec" {
+    command = <<EOT
+gcloud ai endpoints create \
+  --region=${var.region} \
+  --display-name="${var.endpoint_display_name}" \
+  --format="value(name)" > endpoint_id.txt
+EOT
+  }
 }
 
-# Register the built container image as a Vertex AI Model
+# Upload Model
 resource "null_resource" "register_model" {
   depends_on = [
     google_artifact_registry_repository.repo
@@ -54,9 +58,9 @@ EOT
   }
 }
 
+# Deploy Model to Endpoint
 resource "null_resource" "deploy_model" {
   depends_on = [
-    google_artifact_registry_repository.repo,
     null_resource.register_model,
     null_resource.create_endpoint
   ]
@@ -66,8 +70,8 @@ resource "null_resource" "deploy_model" {
 gcloud ai endpoints deploy-model \
   $(cat endpoint_id.txt) \
   --region=${var.region} \
+  --display-name="sdxl-deployment" \
   --model=$(cat model_id.txt) \
-  --display-name="sdxl-model-deployment" \
   --machine-type="${var.machine_type}" \
   --accelerator="type=${var.accelerator_type},count=${var.accelerator_count}" \
   --min-replica-count=${var.min_replica_count} \
@@ -76,4 +80,3 @@ gcloud ai endpoints deploy-model \
 EOT
   }
 }
-
