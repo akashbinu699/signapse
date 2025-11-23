@@ -35,12 +35,29 @@ resource "google_vertex_ai_endpoint" "endpoint" {
   location     = var.region
 }
 
-# Upload model using gcloud CLI
+# Register the built container image as a Vertex AI Model
+resource "null_resource" "register_model" {
+  depends_on = [
+    google_artifact_registry_repository.repo
+  ]
+
+  provisioner "local-exec" {
+    command = <<EOT
+gcloud ai models upload \
+  --region=${var.region} \
+  --display-name="${var.model_display_name}" \
+  --container-image-uri="${var.image_uri}" \
+  --container-predict-route="/predict" \
+  --container-health-route="/health" \
+  --format="value(name)" > model_id.txt
+EOT
+  }
+}
+
 resource "null_resource" "deploy_model" {
   depends_on = [
     google_artifact_registry_repository.repo,
     null_resource.register_model,
-    google_service_account.deploy_sa,
     null_resource.create_endpoint
   ]
 
@@ -59,3 +76,4 @@ gcloud ai endpoints deploy-model \
 EOT
   }
 }
+
