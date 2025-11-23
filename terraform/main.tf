@@ -79,9 +79,8 @@ resource "null_resource" "register_model" {
 # Deploy Model to Endpoint
 resource "null_resource" "deploy_model" {
   depends_on = [
-    google_artifact_registry_repository.repo,
-    null_resource.register_model,
-    null_resource.create_endpoint
+    null_resource.create_endpoint,
+    null_resource.register_model
   ]
 
   provisioner "local-exec" {
@@ -89,8 +88,7 @@ resource "null_resource" "deploy_model" {
       MODEL_ID=$(cat model_id.txt)
       ENDPOINT_ID=$(cat endpoint_id.txt)
 
-      gcloud ai endpoints deploy-model \
-        "$ENDPOINT_ID" \
+      DEPLOYED_MODEL_ID=$(gcloud ai endpoints deploy-model "$ENDPOINT_ID" \
         --region=${var.region} \
         --model="$MODEL_ID" \
         --display-name="sdxl-model-deployment" \
@@ -98,9 +96,14 @@ resource "null_resource" "deploy_model" {
         --accelerator="type=${var.accelerator_type},count=${var.accelerator_count}" \
         --min-replica-count=${var.min_replica_count} \
         --max-replica-count=${var.max_replica_count} \
-        --traffic-split=0=100
+        --format="value(deployedModels.id)" \
+        --async)
 
-      echo "Deployment complete."
+      echo "$DEPLOYED_MODEL_ID" > deployed_model_id.txt
+      echo "Deployment triggered, waiting..."
+
+      gcloud ai endpoints list --region=${var.region}
+
     EOT
   }
 }
