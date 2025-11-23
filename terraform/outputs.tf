@@ -1,9 +1,11 @@
-output "model_id" {
-  value = fileexists("model_id.txt") ? chomp(file("model_id.txt")) : null
-  description = "Uploaded model resource ID"
+output "endpoint_id" {
+  value = google_vertex_ai_endpoint.endpoint.name
 }
 
-output "endpoint_id" {
-  value = fileexists("endpoint_id.txt") ? chomp(file("endpoint_id.txt")) : null
-  description = "Deployed endpoint ID"
+output "latest_model" {
+  value = fileexists("model_id.txt") ? chomp(file("model_id.txt")) : ""
+}
+
+output "latest_deployment" {
+  value = fileexists("deployed_model_id.txt") ? chomp(file("deployed_model_id.txt")) : ""
 }
