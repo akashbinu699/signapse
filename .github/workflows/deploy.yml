@@ -10,8 +10,7 @@ env:
   REGION: ${{ secrets.GCP_REGION }}
   ARTIFACT_REPO: ${{ secrets.GCP_ARTIFACT_REPO }}
   IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
-  # IMAGE_TAG: ${{ github.sha }}
-  IMAGE_TAG: "latest"
+  IMAGE_TAG: ${{ github.sha }}
   TF_BUCKET: ${{ secrets.TF_BUCKET }}
 
 jobs:
