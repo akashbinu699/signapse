@@ -13,29 +13,19 @@ variable "artifact_repo" {
   default = "sdxl-inference"
 }
 
-variable "image_name" {
-  type    = string
-  default = "sdxl-inference"
-}
-
-variable "image_tag" {
-  type    = string
-  default = "latest"
-}
-
 variable "image_uri" {
   type        = string
-  description = "Full container image URI pushed to Artifact Registry"
-}
-
-variable "model_display_name" {
-  type    = string
-  default = "sdxl-model"
+  description = "Full built image URI pushed from CI"
 }
 
 variable "endpoint_display_name" {
   type    = string
   default = "sdxl-endpoint"
+}
+
+variable "model_display_name" {
+  type    = string
+  default = "sdxl-model"
 }
 
 variable "machine_type" {
