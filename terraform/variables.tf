@@ -45,7 +45,7 @@ variable "machine_type" {
 
 variable "accelerator_type" {
   type    = string
-  default = "NVIDIA_A100"
+  default = "NVIDIA_TESLA_A100"
 }
 
 variable "accelerator_count" {
@@ -61,4 +61,15 @@ variable "min_replica_count" {
 variable "max_replica_count" {
   type    = number
   default = 1
+}
+
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 5.32.0"
+    }
+  }
+
+  required_version = ">= 1.3.0"
 }
