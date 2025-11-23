@@ -1,4 +1,3 @@
-# terraform/main.tf
 terraform {
   required_providers {
     google = {
@@ -80,15 +79,13 @@ resource "google_vertex_ai_endpoint_deployment" "deploy" {
 
     dedicated_resources {
       machine_spec {
-        machine_type = var.machine_type  # e.g. "a2-highgpu-1g" or "n1-standard-8"
-        accelerator_type = var.accelerator_type # "NVIDIA_TESLA_T4" etc. OPTIONAL per machine
+        machine_type = var.machine_type 
+        accelerator_type = var.accelerator_type 
         accelerator_count = var.accelerator_count
       }
       min_replica_count = var.min_replica_count
       max_replica_count = var.max_replica_count
     }
-
-    # autoscaling disabled by default; you can add autoscaling config as needed
   }
   traffic_split = {
     "0" = 100
