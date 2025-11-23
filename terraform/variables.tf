@@ -62,14 +62,3 @@ variable "max_replica_count" {
   type    = number
   default = 1
 }
-
-terraform {
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 5.32.0"
-    }
-  }
-
-  required_version = ">= 1.3.0"
-}
