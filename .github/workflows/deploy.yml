@@ -76,3 +76,33 @@ jobs:
 
       - name: Print Deployment Success
         run: echo "Deployment successful. New Vertex container image deployed."
+      
+      - name: Wait for Vertex AI endpoint to become READY
+        run: |
+          echo "Waiting for endpoint readiness..."
+          for i in {1..30}; do
+            STATUS=$(gcloud ai endpoints describe $VERTEX_ENDPOINT_ID \
+              --region=$GCP_REGION \
+              --format='value(state)')
+            echo "Status: $STATUS"
+            [[ "$STATUS" == "READY" ]] && exit 0
+            sleep 10
+          done
+          echo "Endpoint did not become ready in time"
+          exit 1
+
+
+      - name: Install test dependencies
+        run: |
+          pip install google-cloud-aiplatform pytest
+
+
+      - name: Run post-deployment inference test
+        env:
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+          GCP_REGION: ${{ secrets.GCP_REGION }}
+          VERTEX_ENDPOINT_ID: ${{ steps.deploy.outputs.endpoint_id }}
+        run: |
+          pytest -q tests/test_inference.py
+
