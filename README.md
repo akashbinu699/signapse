@@ -1,11 +1,11 @@
-# 🚀 Scalable SDXL Inference Service on Google Cloud
+# Scalable SDXL Inference Service on Google Cloud
 
 This repository contains a fully optimized and production-grade deployment of **Stable Diffusion XL** for high-performance image generation on GPU infrastructure.  
 Originally based on an intentionally slow codebase, this project improves model inference, containerization, infrastructure automation, and CI/CD.
 
 ---
 
-## 📌 Features
+## Features
 
 | Capability | Status |
 |-----------|--------|
@@ -21,7 +21,7 @@ Originally based on an intentionally slow codebase, this project improves model 
 
 ---
 
-## 🧠 Model Improvements
+## Model Improvements
 
 The original inference code suffered from:
 
@@ -45,7 +45,7 @@ The original inference code suffered from:
 | Batch inference support | Efficient GPU utilization |
 | JPEG conversion + streaming response | Faster I/O |
 
-#### 🔧 Special Fix: Black Image Issue
+#### Special Fix: Black Image Issue
 
 Stable Diffusion XL produced **black images** when using FP16 VAE.  
 Solution: load the corrected VAE:
