@@ -14,17 +14,33 @@ provider "google" {
   region  = var.region
 }
 
-# Artifact Registry (safe if exists)
+# First: Try to read repo (will fail gracefully if not found)
+data "google_artifact_registry_repository" "existing_repo" {
+  project  = var.project_id
+  location = var.region
+  repository_id = var.artifact_repo
+
+  depends_on = []
+}
+
+# Create repo **only if it does not already exist**
 resource "google_artifact_registry_repository" "repo" {
+  count = length(data.google_artifact_registry_repository.existing_repo.repository_id) > 0 ? 0 : 1
+
   project       = var.project_id
   location      = var.region
   repository_id = var.artifact_repo
   format        = "DOCKER"
+  description   = "Stable Diffusion inference container repo"
+}
 
-  lifecycle {
-    create_before_destroy = true
-    ignore_changes        = [format]
-  }
+# Unified reference to repo name — works for both new or existing
+locals {
+  artifact_repo_id = (
+    length(data.google_artifact_registry_repository.existing_repo.repository_id) > 0 ?
+    data.google_artifact_registry_repository.existing_repo.repository_id :
+    google_artifact_registry_repository.repo[0].repository_id
+  )
 }
 
 # Create Vertex AI Endpoint
