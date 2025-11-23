@@ -44,66 +44,69 @@ locals {
 }
 
 # Create Vertex AI Endpoint
-resource "null_resource" "create_endpoint" {
-  provisioner "local-exec" {
-    command = <<EOT
-gcloud ai endpoints create \
-  --region=${var.region} \
-  --display-name="${var.endpoint_display_name}" \
-  --format="value(name)" > endpoint_id.txt
-EOT
+resource "google_vertex_ai_endpoint" "endpoint" {
+  name         = "vertex-${var.endpoint_display_name}-${var.project_id}"
+  display_name = var.endpoint_display_name
+  location     = var.region
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
 # Upload Model
 resource "null_resource" "register_model" {
-  depends_on = [
-    google_artifact_registry_repository.repo
-  ]
+  depends_on = [google_artifact_registry_repository.repo]
+
+  triggers = {
+    build_id = timestamp()   # ← forces run every time
+  }
 
   provisioner "local-exec" {
-    command = <<-EOT
-      MODEL_ID=$(gcloud ai models upload \
-        --region=${var.region} \
-        --display-name="${var.model_display_name}" \
-        --container-image-uri="${var.image_uri}" \
-        --container-predict-route="/predict" \
-        --container-health-route="/health" \
-        --format="value(name)")
+    command = <<EOT
+MODEL_NAME="${var.model_display_name}-${var.image_tag}-$(date +%s)"
 
-      echo "$MODEL_ID" > model_id.txt
-    EOT
+gcloud ai models upload \
+  --region=${var.region} \
+  --display-name="$MODEL_NAME" \
+  --container-image-uri="${var.image_uri}" \
+  --container-predict-route="/predict" \
+  --container-health-route="/health" \
+  --format="value(name)" > model_id.txt
+
+echo "Registered Model: $(cat model_id.txt)"
+EOT
   }
 }
 
 # Deploy Model to Endpoint
 resource "null_resource" "deploy_model" {
   depends_on = [
-    null_resource.create_endpoint,
+    google_vertex_ai_endpoint.endpoint,
     null_resource.register_model
   ]
 
+  triggers = {
+    new_model_id = timestamp()  # force redeploy each run
+  }
+
   provisioner "local-exec" {
-    command = <<-EOT
-      MODEL_ID=$(cat model_id.txt)
-      ENDPOINT_ID=$(cat endpoint_id.txt)
+    command = <<EOT
+MODEL_ID=$(cat model_id.txt)
+ENDPOINT_ID="${google_vertex_ai_endpoint.endpoint.name}"
 
-      DEPLOYED_MODEL_ID=$(gcloud ai endpoints deploy-model "$ENDPOINT_ID" \
-        --region=${var.region} \
-        --model="$MODEL_ID" \
-        --display-name="sdxl-model-deployment" \
-        --machine-type="${var.machine_type}" \
-        --accelerator="type=${var.accelerator_type},count=${var.accelerator_count}" \
-        --min-replica-count=${var.min_replica_count} \
-        --max-replica-count=${var.max_replica_count} \
-        --format="value(deployedModels.id)" \
-        --async)
+echo "Deploying Model $MODEL_ID to Endpoint $ENDPOINT_ID..."
 
-      echo "$DEPLOYED_MODEL_ID" > deployed_model_id.txt
-      echo "Deployment triggered, waiting..."
-
-      gcloud ai endpoints list --region=${var.region}
-
-    EOT
+gcloud ai endpoints deploy-model "$ENDPOINT_ID" \
+  --region=${var.region} \
+  --model="$MODEL_ID" \
+  --display-name="sdxl-deployment-$(date +%s)" \
+  --machine-type="${var.machine_type}" \
+  --accelerator="type=${var.accelerator_type},count=${var.accelerator_count}" \
+  --min-replica-count=${var.min_replica_count} \
+  --max-replica-count=${var.max_replica_count} \
+  --traffic-split=0=100 \
+  --format="value(deployedModels.id)" > deployed_model_id.txt
+EOT
   }
 }
