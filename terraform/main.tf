@@ -1,92 +1,76 @@
-terraform {
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 4.80.0"
-    }
-  }
-  required_version = ">= 1.2.0"
-}
-
 provider "google" {
   project = var.project_id
   region  = var.region
 }
 
+# ==== Artifact Registry ====
 resource "google_artifact_registry_repository" "repo" {
-  provider = google
-  project  = var.project_id
-  location = var.region
-  repository_id = var.artifact_repo
-  description = "Docker repo for SDXL inference images"
-  format = "DOCKER"
+  location       = var.region
+  repository_id  = var.artifact_repo
+  description    = "Artifact Registry for SDXL inference images"
+  format         = "DOCKER"
 }
 
+# ==== Service Account ====
 resource "google_service_account" "deploy_sa" {
-  account_id   = "${var.project_id}-vertex-deploy"
-  display_name = "Vertex deploy SA"
+  account_id   = "vertex-deploy"
+  display_name = "Vertex AI Deployment Service Account"
 }
 
-# Grant roles to SA (simplified)
-resource "google_project_iam_member" "sa_artifact_reader" {
-  project = var.project_id
+resource "google_project_iam_member" "artifact_reader" {
   role    = "roles/artifactregistry.reader"
   member  = "serviceAccount:${google_service_account.deploy_sa.email}"
+  project = var.project_id
 }
 
-resource "google_project_iam_member" "sa_storage" {
-  project = var.project_id
+resource "google_project_iam_member" "storage_reader" {
   role    = "roles/storage.objectViewer"
   member  = "serviceAccount:${google_service_account.deploy_sa.email}"
+  project = var.project_id
 }
 
-# Vertex AI Model (container model)
+# ==== Create Model ====
 resource "google_vertex_ai_model" "sdxl_model" {
-  provider = google
-  project  = var.project_id
-  region   = var.region
   display_name = var.model_display_name
+  location     = var.region
 
   container_spec {
-    image_uri = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_repo}/${var.image_name}:${var.image_tag}"
+    image_uri     = var.image_uri
+
     ports {
       container_port = 8080
     }
-    # optional: health route
+
     predict_route = "/predict"
-    health_route = "/health"
+    health_route  = "/health"
   }
-
-  # optionally set machine type / accelerator when deploying
 }
 
+# ==== Create Endpoint ====
 resource "google_vertex_ai_endpoint" "endpoint" {
-  provider = google
-  project  = var.project_id
-  region   = var.region
-  display_name = var.endpoint_display_name
+  location      = var.region
+  display_name  = var.endpoint_display_name
 }
 
-# Deploy model to endpoint
-resource "google_vertex_ai_endpoint_deployment" "deploy" {
-  provider = google
-  project  = var.project_id
-  region   = var.region
-  endpoint = google_vertex_ai_endpoint.endpoint.name
-  deployed_model {
-    model = google_vertex_ai_model.sdxl_model.name
-    display_name = "${var.model_display_name}-deployment"
+# ==== Deploy Model to Endpoint ====
+resource "google_vertex_ai_endpoint_deployed_model" "deployment" {
+  location   = var.region
+  endpoint   = google_vertex_ai_endpoint.endpoint.name
+  model      = google_vertex_ai_model.sdxl_model.name
 
-    dedicated_resources {
-      machine_spec {
-        machine_type = var.machine_type 
-        accelerator_type = var.accelerator_type 
-        accelerator_count = var.accelerator_count
-      }
-      min_replica_count = var.min_replica_count
-      max_replica_count = var.max_replica_count
+  display_name = "${var.model_display_name}-deployment"
+
+  dedicated_resources {
+    min_replica_count = var.min_replica_count
+    max_replica_count = var.max_replica_count
+
+    machine_spec {
+      machine_type       = var.machine_type
+      accelerator_type   = var.accelerator_type
+      accelerator_count  = var.accelerator_count
     }
   }
+
   traffic_split = {
     "0" = 100
   }
