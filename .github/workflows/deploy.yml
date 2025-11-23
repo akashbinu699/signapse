@@ -75,4 +75,4 @@ jobs:
             -auto-approve
 
       - name: Print Deployment Success
-        run: echo "🚀 Deployment successful. New Vertex container image deployed."
+        run: echo "Deployment successful. New Vertex container image deployed."
