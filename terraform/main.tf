@@ -5,6 +5,8 @@ terraform {
       version = ">= 5.32.0"
     }
   }
+
+  required_version = ">= 1.3.0"
 }
 
 provider "google" {
@@ -12,28 +14,27 @@ provider "google" {
   region  = var.region
 }
 
-# Artifact registry (already exists but Terraform ensures state)
 resource "google_artifact_registry_repository" "repo" {
   location       = var.region
   repository_id  = var.artifact_repo
   format         = "DOCKER"
 }
 
-# Vertex endpoint
 resource "google_vertex_ai_endpoint" "endpoint" {
+  name         = "vertex-${var.endpoint_display_name}-${var.project_id}"
   display_name = var.endpoint_display_name
   location     = var.region
 }
 
-# Upload model via bootstrap script
+# Upload model using gcloud CLI
 resource "null_resource" "upload_model" {
   provisioner "local-exec" {
     command = <<EOF
 gcloud ai models upload \
-   --region=${var.region} \
-   --display-name="${var.model_display_name}" \
-   --container-image-uri="${var.image_uri}" \
-   --format='value(name)' > model_id.txt
+  --region=${var.region} \
+  --display-name="${var.model_display_name}" \
+  --container-image-uri="${var.image_uri}" \
+  --format="value(name)" > model_id.txt
 EOF
   }
 }
