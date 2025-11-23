@@ -15,9 +15,18 @@ provider "google" {
 }
 
 resource "google_artifact_registry_repository" "repo" {
-  location       = var.region
-  repository_id  = var.artifact_repo
-  format         = "DOCKER"
+  project       = var.project_id
+  location      = var.region
+  repository_id = var.artifact_repo
+  format        = "DOCKER"
+  description   = "Stable Diffusion container repo"
+
+  lifecycle {
+    ignore_changes = [
+      description,
+      format
+    ]
+  }
 }
 
 resource "google_vertex_ai_endpoint" "endpoint" {
@@ -27,37 +36,26 @@ resource "google_vertex_ai_endpoint" "endpoint" {
 }
 
 # Upload model using gcloud CLI
-resource "null_resource" "upload_model" {
-  provisioner "local-exec" {
-    command = <<EOF
-gcloud ai models upload \
-  --region=${var.region} \
-  --display-name="${var.model_display_name}" \
-  --container-image-uri="${var.image_uri}" \
-  --format="value(name)" > model_id.txt
-EOF
-  }
-}
-
-# Deploy model to endpoint
 resource "null_resource" "deploy_model" {
   depends_on = [
-    google_vertex_ai_endpoint.endpoint,
-    null_resource.upload_model
+    google_artifact_registry_repository.repo,
+    null_resource.register_model,
+    google_service_account.deploy_sa,
+    null_resource.create_endpoint
   ]
 
   provisioner "local-exec" {
-    command = <<EOF
-gcloud ai endpoints deploy-model ${google_vertex_ai_endpoint.endpoint.name} \
+    command = <<EOT
+gcloud ai endpoints deploy-model \
+  $(cat endpoint_id.txt) \
   --region=${var.region} \
   --model=$(cat model_id.txt) \
-  --display-name="${var.model_display_name}-deployment" \
+  --display-name="sdxl-model-deployment" \
   --machine-type="${var.machine_type}" \
-  --accelerator-type="${var.accelerator_type}" \
-  --accelerator-count=${var.accelerator_count} \
+  --accelerator="type=${var.accelerator_type},count=${var.accelerator_count}" \
   --min-replica-count=${var.min_replica_count} \
   --max-replica-count=${var.max_replica_count} \
   --traffic-split=0=100
-EOF
+EOT
   }
 }
