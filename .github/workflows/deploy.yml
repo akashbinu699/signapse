@@ -34,7 +34,7 @@ jobs:
         run: |
           docker build \
             -t $REGION-docker.pkg.dev/$PROJECT_ID/$ARTIFACT_REPO/$IMAGE_NAME:$IMAGE_TAG \
-            -f docker/Dockerfile .
+            -f docker/Dockerfile2 .
 
       - name: Push Image
         run: |
