@@ -30,7 +30,7 @@ variable "image_uri" {
 
 variable "model_display_name" {
   type    = string
-  default = "sdxl-turbo-model"
+  default = "sdxl-model"
 }
 
 variable "endpoint_display_name" {
@@ -45,7 +45,7 @@ variable "machine_type" {
 
 variable "accelerator_type" {
   type    = string
-  default = "NVIDIA_TESLA_A100"
+  default = "NVIDIA_A100"
 }
 
 variable "accelerator_count" {
