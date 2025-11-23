@@ -1,0 +1,56 @@
+# docker/Dockerfile
+#########################
+# STAGE 1 — BASE
+#########################
+FROM nvidia/cuda:12.2.0-cudnn8-runtime-ubuntu22.04 AS base
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/app/.cache/huggingface \
+    MODEL_DIR=/opt/ml/model \
+    PYTHONPATH=/app/src \
+    TZ=Etc/UTC
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-venv python3-distutils \
+    curl ca-certificates git wget unzip \
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+#########################
+# STAGE 2 — BUILD WHEELS
+#########################
+FROM base AS builder
+
+COPY docker/requirements.txt /app/requirements.txt
+RUN pip3 install --upgrade pip wheel setuptools \
+    && pip3 wheel -r /app/requirements.txt -w /tmp/wheels
+
+#########################
+# STAGE 3 — RUNTIME
+#########################
+FROM base AS runtime
+
+COPY --from=builder /tmp/wheels /tmp/wheels
+RUN pip3 install --no-cache-dir /tmp/wheels/*.whl && rm -rf /tmp/wheels
+
+# ensure /app/outputs exists and is writable for mounted volumes
+RUN mkdir -p /app/outputs /app/.cache/huggingface /opt/ml/model \
+    && chmod -R 777 /app/outputs /app/.cache/huggingface /opt/ml/model
+
+# copy app code
+COPY src/ /app/src
+COPY sagemaker/serve.sh /usr/local/bin/serve
+RUN chmod +x /usr/local/bin/serve
+
+# small cleanup
+RUN rm -rf /usr/share/man/* /usr/share/doc/* /usr/share/locale/* || true
+
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s CMD curl -f http://127.0.0.1:8080/health || exit 1
+
+CMD ["serve"]

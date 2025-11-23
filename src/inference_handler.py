@@ -1,13 +1,13 @@
-# src/inference_handler.py
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, validator
 from typing import List, Optional, Union
 import base64
 import time
 import os
+import traceback
 
 from .model import generate_from_prompts, DiffusionModel
-from .logger import get_logger
+from .logger2 import get_logger
 
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import Response
@@ -55,7 +55,7 @@ class PredictRequest(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     DiffusionModel.get_pipe()
-    logger.info("Model loaded on startup 🚀")
+    logger.info("Model loaded on startup")
 
 
 @app.get("/health")
@@ -89,7 +89,7 @@ def predict(req: PredictRequest):
             fmt=req.image_format,
         )
     except Exception as e:
-        logger.error("Generation failed: %s", e)
+        logger.error("Generation failed: %s\n%s", e, traceback.format_exc())
         raise HTTPException(500, f"Generation failed: {e}")
 
     elapsed = time.time() - start
@@ -99,7 +99,12 @@ def predict(req: PredictRequest):
     if req.response_format == "binary":
         if len(images) > 1:
             raise HTTPException(400, "Binary mode only supports a single image.")
-        return Response(images[0], media_type=f"image/{req.image_format.lower()}")
+    
+        return Response(
+            images[0],
+            media_type=f"image/{req.image_format.lower()}",
+            headers={"Content-Disposition": f'attachment; filename="generated.{req.image_format.lower()}"'}
+        )
 
     # ---- Base64 JSON Response ----
     encoded = [base64.b64encode(b).decode("utf-8") for b in images]

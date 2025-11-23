@@ -1,4 +1,3 @@
-# src/app.py
 import argparse
 from pathlib import Path
 from .model2 import generate_from_prompts
@@ -24,7 +23,7 @@ def generate_image(prompt: str, output_path: str = None, steps: int = 8):
     with open(out, "wb") as f:
         f.write(images[0])
 
-    logger.info("💾 Saved image to %s", out)
+    logger.info("Saved image to %s", out)
 
 
 def main():
