@@ -58,7 +58,7 @@ EOT
 # Upload Model
 resource "null_resource" "register_model" {
   depends_on = [
-    local.artifact_repo_id
+    google_artifact_registry_repository.repo
   ]
 
   provisioner "local-exec" {
@@ -71,7 +71,7 @@ resource "null_resource" "register_model" {
         --container-health-route="/health" \
         --format="value(name)")
 
-      echo ${MODEL_ID} > model_id.txt
+      echo "$MODEL_ID" > model_id.txt
     EOT
   }
 }
@@ -97,7 +97,7 @@ resource "null_resource" "deploy_model" {
         --traffic-split=0=100 \
         --format="value(name)")
 
-      echo ${ENDPOINT_ID} > endpoint_id.txt
+      echo "$ENDPOINT_ID" > endpoint_id.txt
     EOT
   }
 }
