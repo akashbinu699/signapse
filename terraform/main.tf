@@ -58,19 +58,21 @@ EOT
 # Upload Model
 resource "null_resource" "register_model" {
   depends_on = [
-    google_artifact_registry_repository.repo
+    local.artifact_repo_id
   ]
 
   provisioner "local-exec" {
-    command = <<EOT
-gcloud ai models upload \
-  --region=${var.region} \
-  --display-name="${var.model_display_name}" \
-  --container-image-uri="${var.image_uri}" \
-  --container-predict-route="/predict" \
-  --container-health-route="/health" \
-  --format="value(name)" > model_id.txt
-EOT
+    command = <<-EOT
+      MODEL_ID=$(gcloud ai models upload \
+        --region=${var.region} \
+        --display-name="${var.model_display_name}" \
+        --container-image-uri="${var.image_uri}" \
+        --container-predict-route="/predict" \
+        --container-health-route="/health" \
+        --format="value(name)")
+
+      echo ${MODEL_ID} > model_id.txt
+    EOT
   }
 }
 
@@ -78,21 +80,24 @@ EOT
 resource "null_resource" "deploy_model" {
   depends_on = [
     null_resource.register_model,
-    null_resource.create_endpoint
+    google_vertex_ai_endpoint.endpoint
   ]
 
   provisioner "local-exec" {
-    command = <<EOT
-gcloud ai endpoints deploy-model \
-  $(cat endpoint_id.txt) \
-  --region=${var.region} \
-  --display-name="sdxl-deployment" \
-  --model=$(cat model_id.txt) \
-  --machine-type="${var.machine_type}" \
-  --accelerator="type=${var.accelerator_type},count=${var.accelerator_count}" \
-  --min-replica-count=${var.min_replica_count} \
-  --max-replica-count=${var.max_replica_count} \
-  --traffic-split=0=100
-EOT
+    command = <<-EOT
+      ENDPOINT_ID=$(gcloud ai endpoints deploy-model \
+        ${google_vertex_ai_endpoint.endpoint.name} \
+        --region=${var.region} \
+        --model=$(cat model_id.txt) \
+        --display-name="sdxl-model-deployment" \
+        --machine-type="${var.machine_type}" \
+        --accelerator="type=${var.accelerator_type},count=${var.accelerator_count}" \
+        --min-replica-count=${var.min_replica_count} \
+        --max-replica-count=${var.max_replica_count} \
+        --traffic-split=0=100 \
+        --format="value(name)")
+
+      echo ${ENDPOINT_ID} > endpoint_id.txt
+    EOT
   }
 }
