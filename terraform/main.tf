@@ -64,7 +64,7 @@ resource "null_resource" "register_model" {
 
   provisioner "local-exec" {
     command = <<EOT
-MODEL_NAME="${var.model_display_name}-${var.image_tag}-$(date +%s)"
+MODEL_NAME="${var.model_display_name}-$(date +%s)"
 
 gcloud ai models upload \
   --region=${var.region} \
