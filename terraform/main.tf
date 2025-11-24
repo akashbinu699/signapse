@@ -59,12 +59,16 @@ resource "null_resource" "register_model" {
   depends_on = [google_artifact_registry_repository.repo]
 
   triggers = {
-    build_id = timestamp()   # ← forces run every time
+    build_id = timestamp()
   }
 
   provisioner "local-exec" {
     command = <<EOT
+set -e
+
 MODEL_NAME="${var.model_display_name}-$(date +%s)"
+
+echo "Uploading model: $MODEL_NAME"
 
 gcloud ai models upload \
   --region=${var.region} \
@@ -72,9 +76,18 @@ gcloud ai models upload \
   --container-image-uri="${var.image_uri}" \
   --container-predict-route="/predict" \
   --container-health-route="/health" \
-  --format="value(name)" > model_id.txt
+  --quiet \
+  --format="json" > upload_response.json
 
-echo "Registered Model: $(cat model_id.txt)"
+MODEL_ID=$(jq -r '.name' upload_response.json)
+
+if [ -z "$MODEL_ID" ]; then
+  echo "ERROR: Model upload failed — no model ID returned"
+  exit 1
+fi
+
+echo "$MODEL_ID" > model_id.txt
+echo "Model registered: $MODEL_ID"
 EOT
   }
 }
