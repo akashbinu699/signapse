@@ -72,6 +72,7 @@ jobs:
             -var="region=$REGION" \
             -var="artifact_repo=$ARTIFACT_REPO" \
             -var="image_uri=$IMAGE_URI" \
+            -var="image_tag=$IMAGE_TAG" \
             -auto-approve
 
       - name: Capture Endpoint Output
@@ -98,7 +99,7 @@ jobs:
             sleep 10
           done
 
-          echo "❌ ERROR: Endpoint did not become ready."
+          echo "ERROR: Endpoint did not become ready."
           exit 1
 
       - name: Install Test Dependencies
@@ -109,4 +110,4 @@ jobs:
           pytest tests/test_inference.py -q
 
       - name: Deployment Successful
-        run: echo "🎉 Vertex AI Deployment Completed Successfully"
+        run: echo "Vertex AI Deployment Completed Successfully"
