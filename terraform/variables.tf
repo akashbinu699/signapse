@@ -18,6 +18,11 @@ variable "image_uri" {
   description = "Full built image URI pushed from CI"
 }
 
+variable "image_tag" {
+  type    = string
+  default = "latest"
+}
+
 variable "endpoint_display_name" {
   type    = string
   default = "sdxl-endpoint"
